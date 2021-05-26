@@ -8,19 +8,22 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <time.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 #include "sdkconfig.h"
+#include "driver/touch_sensor_common.h"
 
 /* Can use project configuration menu (idf.py menuconfig) to choose the GPIO to blink,
    or you can edit the following line and set a number here.
 */
 #define BLINK_GPIO CONFIG_BLINK_GPIO
+#define WARN_SECONDS CONFIG_WARN_SECONDS
 
-TaskHandle_t myTaskHandle1 = NULL, myTaskHandle2 = NULL;
+TaskHandle_t myTaskHandle1 = NULL, logTaskHandle = NULL;
 QueueHandle_t myQueue = NULL;
 
 void myTask1(void * pvParameters )
@@ -45,18 +48,54 @@ void myTask1(void * pvParameters )
 void myTask2(void * pvParameters )
 {
     int val = (int)pvParameters;
-    ESP_LOGW("Task2", "My value %d, starting endless loop", val);
+
     while(1) {
         val++;
-        printf("Hello from myTask2 Value: %d\n", val);
-        xQueueSend(myQueue, &val, portMAX_DELAY);
+        //ESP_LOGW("Task2", "My value %d, starting endless loop", val);
+        xQueueSend(myQueue, &val, 1000/ portTICK_PERIOD_MS);
+    }
+}
+
+void logTask(){
+    time_t T = time(NULL);
+    struct tm tm = *localtime(&T);
+    int val = 1;
+    int receivedVal;
+    while (1) {
+        T = time(NULL);
+        tm = *localtime(&T);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ESP_LOGI("logTask", "Time passed since boot: %02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+        if (val % WARN_SECONDS == 0) {
+            ESP_LOGW("logTask", "%d Seconds have passed", WARN_SECONDS);
+            xQueueReceive(myQueue, &receivedVal, portMAX_DELAY);
+            ESP_LOGW("logTask", "Received queue element with value %d", receivedVal);
+        }
+        val++;
     }
 }
 
 void app_main(void)
 {
-    ESP_LOGI("Main", "Ich bin gerade in der Main!");
-    myQueue = xQueueCreate(10, sizeof(int));
-    xTaskCreatePinnedToCore(myTask1, "myTask1", 4096, (void*)42, 10, &myTaskHandle1, 0);
-    xTaskCreatePinnedToCore(myTask2, "myTask2", 4096, (void*)22, 10, &myTaskHandle2, 1);
+    ESP_LOGI("Main", "Ich bin grade in der Main!");
+
+    touch_pad_init();
+    touch_pad_config(0, 0);
+    touch_pad_filter_start(0);
+    uint16_t touchVal = 0;
+
+
+// create task for this
+    while (1){
+        touch_pad_read(0, &touchVal);
+        printf("Touchdata: %d\n", touchVal);
+    }
+
+    /*
+    myQueue = xQueueCreate(1, sizeof(int));
+    //xTaskCreatePinnedToCore(myTask1, "myTask1", 4096, (void*)42, 10, &myTaskHandle1, 0);
+    xTaskCreatePinnedToCore(logTask, "logTask", 4096, (void*)1, 10, &logTaskHandle, 0);
+    xTaskCreatePinnedToCore(myTask2, "myTask2", 4096, (void*)0, 10, &myTaskHandle1, 1);
+*/
+    ESP_LOGI("Main", "Ich bin am Ende der Main!");
 }

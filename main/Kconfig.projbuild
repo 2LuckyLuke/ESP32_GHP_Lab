@@ -1,4 +1,4 @@
-menu "Example Configuration"
+menu "User Configuration"
 
     config BLINK_GPIO
         int "Blink GPIO number"
@@ -10,5 +10,11 @@ menu "Example Configuration"
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used to blink.
 
             GPIOs 35-39 are input-only so cannot be used as outputs.
+
+    config WARN_SECONDS
+            int "every X seconds warning"
+            default 10
+            help
+                Every X seconds the ESP will log a warning in the terminal.
 
 endmenu
