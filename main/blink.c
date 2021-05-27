@@ -23,35 +23,35 @@
 #define BLINK_GPIO CONFIG_BLINK_GPIO
 #define WARN_SECONDS CONFIG_WARN_SECONDS
 
-TaskHandle_t myTaskHandle1 = NULL, logTaskHandle = NULL;
+TaskHandle_t messageQueueHandle = NULL, logTaskHandle = NULL, touchTaskHandle = NULL;
 QueueHandle_t myQueue = NULL;
 
-void myTask1(void * pvParameters )
-{
+void touchTask(void * pvParameters ){
     int val = (int)pvParameters;
-    ESP_LOGE("Task1", "My value is %d, setting GPIOs for blink and starting endless loop", val);
+    touch_pad_init();
+    touch_pad_config(0, 0);
+    //touch_pad_filter_start(0);
+    uint16_t touchVal = 0;
     gpio_pad_select_gpio(BLINK_GPIO);
     gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+
+
     while(1) {
-        //printf("Turning off the LED Value: %d\n", val);
-        gpio_set_level(BLINK_GPIO, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        //printf("Turning on the LED\n");
-        gpio_set_level(BLINK_GPIO, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        int receivedVal;
-        xQueueReceive(myQueue, &receivedVal, portMAX_DELAY);
-        ESP_LOGW("Task1", "Received queue element with value %d", receivedVal);
+        touch_pad_read(0, &touchVal);
+        //printf("Touchdata: %d\n", touchVal);
+        if (touchVal <= 300){
+            gpio_set_level(BLINK_GPIO, 1);
+        } else{
+            gpio_set_level(BLINK_GPIO, 0);
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-void myTask2(void * pvParameters )
-{
+void messageQueueTask(void * pvParameters ){
     int val = (int)pvParameters;
-
     while(1) {
         val++;
-        //ESP_LOGW("Task2", "My value %d, starting endless loop", val);
         xQueueSend(myQueue, &val, 1000/ portTICK_PERIOD_MS);
     }
 }
@@ -79,23 +79,10 @@ void app_main(void)
 {
     ESP_LOGI("Main", "Ich bin grade in der Main!");
 
-    touch_pad_init();
-    touch_pad_config(0, 0);
-    touch_pad_filter_start(0);
-    uint16_t touchVal = 0;
-
-
-// create task for this
-    while (1){
-        touch_pad_read(0, &touchVal);
-        printf("Touchdata: %d\n", touchVal);
-    }
-
-    /*
     myQueue = xQueueCreate(1, sizeof(int));
-    //xTaskCreatePinnedToCore(myTask1, "myTask1", 4096, (void*)42, 10, &myTaskHandle1, 0);
-    xTaskCreatePinnedToCore(logTask, "logTask", 4096, (void*)1, 10, &logTaskHandle, 0);
-    xTaskCreatePinnedToCore(myTask2, "myTask2", 4096, (void*)0, 10, &myTaskHandle1, 1);
-*/
+    xTaskCreatePinnedToCore(touchTask, "touchTask", 4096, (void*)0, 10, &touchTaskHandle, 0);
+    //xTaskCreatePinnedToCore(logTask, "logTask", 4096, (void*)1, 10, &logTaskHandle, 0);
+    //xTaskCreatePinnedToCore(messageQueueTask, "messageQueueTask", 4096, (void*)0, 10, &messageQueueHandle, 1);
+
     ESP_LOGI("Main", "Ich bin am Ende der Main!");
 }
