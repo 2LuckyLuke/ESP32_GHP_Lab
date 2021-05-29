@@ -13,10 +13,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-#include "driver/gpio.h"
 #include "sdkconfig.h"
+#include "driver/gpio.h"
 #include "driver/touch_sensor_common.h"
+#include "driver/ledc.h"
 
+#define LEDC_FADE_TIME    (3000)
 /* Can use project configuration menu (idf.py menuconfig) to choose the GPIO to blink,
    or you can edit the following line and set a number here.
 */
@@ -26,37 +28,71 @@
 TaskHandle_t messageQueueHandle = NULL, logTaskHandle = NULL, touchTaskHandle = NULL;
 QueueHandle_t myQueue = NULL;
 
-void touchTask(void * pvParameters ){
-    int val = (int)pvParameters;
+void touchTask(void *pvParameters) {
+    int val = (int) pvParameters;
+    int status = 0;
+    int lastStatus = 0;
     touch_pad_init();
     touch_pad_config(0, 0);
-    //touch_pad_filter_start(0);
     uint16_t touchVal = 0;
     gpio_pad_select_gpio(BLINK_GPIO);
     gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
 
+    ledc_timer_config_t ledc_timer = {
+            .duty_resolution = LEDC_TIMER_13_BIT, // resolution of PWM duty
+            .freq_hz = 5000,                      // frequency of PWM signal
+            .speed_mode = LEDC_LOW_SPEED_MODE,   // timer mode
+            .timer_num = LEDC_TIMER_1,            // timer index
+            .clk_cfg = LEDC_AUTO_CLK,             // Auto select the source clock
+    };
+    ledc_timer_config(&ledc_timer);
 
-    while(1) {
+    ledc_channel_config_t ledc_channel = {
+            .channel    = LEDC_CHANNEL_2,
+            .duty       = 0,
+            .gpio_num   = BLINK_GPIO,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .hpoint     = 0,
+            .timer_sel  = LEDC_TIMER_1,
+    };
+    ledc_channel_config(&ledc_channel);
+    ledc_fade_func_install(0);
+
+    while (1) {
         touch_pad_read(0, &touchVal);
-        //printf("Touchdata: %d\n", touchVal);
-        if (touchVal <= 300){
-            gpio_set_level(BLINK_GPIO, 1);
-        } else{
-            gpio_set_level(BLINK_GPIO, 0);
+        if (touchVal <= 300) {
+            ledc_set_fade_with_time(ledc_channel.speed_mode,
+                                    ledc_channel.channel,
+                                    4000,
+                                    LEDC_FADE_TIME);
+            ledc_fade_start(ledc_channel.speed_mode,
+                            ledc_channel.channel,
+                            LEDC_FADE_NO_WAIT);
+            status = 1;
+        } else {
+            ledc_set_fade_with_time(ledc_channel.speed_mode,
+                                    ledc_channel.channel, 0, LEDC_FADE_TIME);
+            ledc_fade_start(ledc_channel.speed_mode,
+                            ledc_channel.channel, LEDC_FADE_NO_WAIT);
+            status = 0;
         }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        if (status != lastStatus){
+            lastStatus = status;
+            vTaskDelay(LEDC_FADE_TIME / portTICK_PERIOD_MS);
+        }
+        //vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-void messageQueueTask(void * pvParameters ){
-    int val = (int)pvParameters;
-    while(1) {
+void messageQueueTask(void *pvParameters) {
+    int val = (int) pvParameters;
+    while (1) {
         val++;
-        xQueueSend(myQueue, &val, 1000/ portTICK_PERIOD_MS);
+        xQueueSend(myQueue, &val, 1000 / portTICK_PERIOD_MS);
     }
 }
 
-void logTask(){
+void logTask() {
     time_t T = time(NULL);
     struct tm tm = *localtime(&T);
     int val = 1;
@@ -75,14 +111,11 @@ void logTask(){
     }
 }
 
-void app_main(void)
-{
-    ESP_LOGI("Main", "Ich bin grade in der Main!");
-
+void app_main(void) {
+    ESP_LOGI("Main", "Start of Main!");
     myQueue = xQueueCreate(1, sizeof(int));
-    xTaskCreatePinnedToCore(touchTask, "touchTask", 4096, (void*)0, 10, &touchTaskHandle, 0);
+    xTaskCreatePinnedToCore(touchTask, "touchTask", 4096, (void *) 0, 10, &touchTaskHandle, 0);
     //xTaskCreatePinnedToCore(logTask, "logTask", 4096, (void*)1, 10, &logTaskHandle, 0);
     //xTaskCreatePinnedToCore(messageQueueTask, "messageQueueTask", 4096, (void*)0, 10, &messageQueueHandle, 1);
-
-    ESP_LOGI("Main", "Ich bin am Ende der Main!");
+    ESP_LOGI("Main", "End of Main!");
 }
