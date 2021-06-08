@@ -1,4 +1,4 @@
-/home/kali/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/211.7142.21/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/kali/esp/ghp-blink
+/home/kali/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/211.7142.21/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/kali/esp/simple_Http/simple
 CMake Error at CMakeLists.txt:5 (include):
   include could not find load file:
 
@@ -18,4 +18,4 @@ CMake Error at CMakeLists.txt:5 (include):
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Configuring incomplete, errors occurred!
-See also "/home/kali/esp/ghp-blink/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/home/kali/esp/simple_Http/simple/cmake-build-debug/CMakeFiles/CMakeOutput.log".
