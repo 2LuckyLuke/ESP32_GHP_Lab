@@ -18,8 +18,6 @@
 #include "driver/touch_sensor_common.h"
 #include "driver/ledc.h"
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "EndlessLoop"
 #define LEDC_FADE_TIME    (3000)
 /* Can use project configuration menu (idf.py menuconfig) to choose the GPIO to blink,
    or you can edit the following line and set a number here.
@@ -121,5 +119,3 @@ void app_main(void) {
     xTaskCreatePinnedToCore(messageQueueTask, "messageQueueTask", 4096, (void*)0, 10, &messageQueueHandle, 1);
     ESP_LOGI("Main", "End of Main!");
 }
-
-#pragma clang diagnostic pop

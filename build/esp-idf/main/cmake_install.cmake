@@ -1,4 +1,4 @@
-# Install script for directory: /home/kali/esp/ghp-blink/main
+# Install script for directory: /home/kali/esp/simple_Http/simple/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

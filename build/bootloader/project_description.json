@@ -1,8 +1,8 @@
 {
     "project_name":       "bootloader",
     "project_path":       "/home/kali/esp/esp-idf/components/bootloader/subproject",
-    "build_dir":          "/home/kali/esp/ghp-blink/build/bootloader",
-    "config_file":        "/home/kali/esp/ghp-blink/sdkconfig",
+    "build_dir":          "/home/kali/esp/simple_Http/simple/build/bootloader",
+    "config_file":        "/home/kali/esp/simple_Http/simple/sdkconfig",
     "config_defaults":    "",
     "app_elf":            "bootloader.elf",
     "app_bin":            "bootloader.bin",
