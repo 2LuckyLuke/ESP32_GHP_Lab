@@ -59,6 +59,7 @@ void touchTask(void *pvParameters) {
     ledc_fade_func_install(0);
 
     while (1) {
+
         touch_pad_read(0, &touchVal);
         if (touchVal <= 300) {
             ledc_set_fade_with_time(ledc_channel.speed_mode,
